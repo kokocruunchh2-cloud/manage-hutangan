@@ -72,6 +72,11 @@ tr.done td{opacity:.5;text-decoration:line-through}
 <div class="row" style="margin-top:6px"><div><label>Distributor (opsional; jika kosong pakai Master Barang)</label><input id="lstDist" list="dlD"></div><div><label>Keterangan</label><input id="lstKet" value="LOCK"></div></div>
 <button id="lstGo" class="pri">Cocokkan ke master</button> <span class="msg" id="lstMsg"></span>
 <div class="tw" id="lstOut"></div></details>
+<details style="margin-top:12px"><summary class="mu">Impor daftar obat asuransi (nama obat + jumlah saja)</summary>
+<p class="mu">Tempel teks asuransi apa adanya. Sistem mengabaikan nama pasien, penjamin, dan judul/tanggal HUTANG LUNAS. Hasilnya masuk ke kelompok Umum / Asuransi. Periksa hasil pencocokan sebelum menambahkan.</p>
+<textarea id="insImpT" rows="7" placeholder="Tempel daftar asuransi di sini..."></textarea>
+<button id="insImpGo" class="pri" style="margin-top:6px">Baca daftar asuransi</button> <span class="msg" id="insImpMsg"></span>
+</details>
 <details style="margin-top:12px"><summary class="mu">Impor hutangan dari Excel</summary>
 <p class="mu">Salin baris dari Excel (kolom: NO, NAMA OBAT, JUMLAH, KETERANGAN, HPP, TOTAL HARGA, DISTRIBUTOR), tempel di bawah. Baris berketerangan "sudah distribusi" otomatis dilewati.</p>
 <textarea id="hImpT" rows="5"></textarea>
@@ -478,6 +483,42 @@ function cands(name){const sx=sfx(name),t=tk2(name.replace(/[#*]\s*$/,'')),L=[];
   if(!ok)continue;const rec=h/t.length;if(rec<0.4)continue;
   L.push([rec*0.75+h/c.t.length*0.25+(c.s===sx?0.05:(!sx&&c.s==='*'?0.02:0))+(used.has(String(c.m.id))?0.08:0),c.m])}
  return L.sort((a,b)=>b[0]-a[0]).slice(0,6)}
+function parseInsuranceText(txt){
+ const out=[];
+ const units='tablet|tablets|tab|tabs|kapsul|capsule|cap|sachet|sach|botol|btl|ml|ampul|amp|vial|pen|tube|pcs|piece|strip|supp|ovula|drop|box|unit|lembar|buah|puff|pack|flakon';
+ const unitRe=new RegExp('(?:^|\\s)(\\d+(?:[.,]\\d+)?)\\s*('+units+')\\b','i');
+ const isHeading=s=>/^HUTANG\\s+LUNAS\\b/i.test(s)||/^HUTANG\\s+RANAP\\b/i.test(s)||/^[-=*_\\s]*$/.test(s);
+ txt.split(/\\r?\\n/).forEach(line=>{
+  let s=line.trim();if(!s||isHeading(s))return;
+  // Baris dapat diawali nama pasien/penjamin sebelum tanda titik dua.
+  if(s.includes(':'))s=s.slice(s.lastIndexOf(':')+1).trim();
+  if(!s)return;
+  // Pecah obat yang ditulis berurutan dengan koma; koma desimal tetap aman.
+  const parts=s.split(/,\\s+(?=[A-Z][a-zA-Z])/);
+  parts.forEach(part=>{
+   let p=part.trim().replace(/^[-•;]+|[-;]+$/g,'');if(!p)return;
+   const m=unitRe.exec(p);if(!m)return;
+   const qty=parseFloat(m[1].replace(',','.'));if(!(qty>0))return;
+   let name=p.slice(0,m.index+m[0].indexOf(m[1])).trim();
+   name=name.replace(/[=*#:\\-\\s]+$/g,'').replace(/^[:\\-\\s]+/g,'').trim();
+   if(!name)return;
+   // Buang kata pengantar umum yang bukan bagian nama obat.
+   name=name.replace(/^(?:obat\\s+)?/i,'').trim();
+   out.push({raw:name,qty:Math.round(qty),c:cands(name).map(x=>x[1]),sel:-1,on:true,kat:'umum'});
+  });
+ });
+ return out;
+}
+$('insImpGo').onclick=()=>{
+ const txt=$('insImpT').value.trim();
+ if(!txt){$('insImpMsg').textContent='Tempel teks daftar asuransi terlebih dahulu.';return}
+ const parsed=parseInsuranceText(txt);
+ LST=parsed;
+ const hit=parsed.filter(x=>x.c.length).length,miss=parsed.length-hit;
+ $('insImpMsg').textContent=parsed.length+' obat terbaca · '+hit+' cocok dengan Master Barang · '+miss+' perlu dicocokkan manual.';
+ lstRender();
+ if(!parsed.length)$('insImpMsg').textContent='Belum ada obat yang terbaca. Pastikan setiap obat memiliki jumlah dan satuan (mis. 30 tab, 1 tube, 4 pen).';
+};
 $('lstGo').onclick=()=>{LST=[];$('lstMsg').textContent='';
  $('lstT').value.split(/\r?\n/).forEach(l=>{l=l.trim();if(!l)return;
   const m=l.match(/^(.*?)\s*:\s*(\d[\d.,]*)\s*(.*)$/);if(!m)return;
@@ -495,7 +536,7 @@ function lstRender(){
  $('lstAdd').onclick=lstAdd}
 function lstAdd(){let n=0;
  LST.forEach(x=>{if(!x.on||x.sel<0||!(x.qty>0))return;const m=x.c[x.sel];
-  S.hutang.push({k:uid(),tgl:today(),kat:(sfx(x.raw)==='#'||sfx(m.nama)==='#')?'bpjs':(sfx(x.raw)==='*'||sfx(m.nama)==='*')?'umum':$('hK').value,ket:$('lstKet').value.trim(),pihak:$('lstDist').value.trim()||m.distributor||DIST_BY_ID[String(m.id)]||'-',id:m.id,nama:m.nama,qty:x.qty,hpp:m.hpp,lunas:false});n++});
+  S.hutang.push({k:uid(),tgl:today(),kat:x.kat||(sfx(x.raw)==='#'||sfx(m.nama)==='#')?'bpjs':(sfx(x.raw)==='*'||sfx(m.nama)==='*')?'umum':$('hK').value,ket:$('lstKet').value.trim(),pihak:$('lstDist').value.trim()||m.distributor||DIST_BY_ID[String(m.id)]||'-',id:m.id,nama:m.nama,qty:x.qty,hpp:m.hpp,lunas:false});n++});
  LST=LST.filter(x=>!(x.on&&x.sel>=0&&x.qty>0));save();render();lstRender();$('lstMsg').textContent=n+' hutangan ditambahkan.'}
 document.addEventListener('change',e=>{const t=e.target.closest('[data-l]');if(!t)return;const x=LST[+t.dataset.i];if(!x)return;const k=t.dataset.l;
  if(k=='on')x.on=t.checked;else if(k=='q')x.qty=parseInt(t.value,10)||0;else if(k=='s'){x.sel=+t.value;if(x.sel<0)x.on=false}else if(k=='id'){const v=t.value.trim(),mm=S.master.find(z=>String(z.id)===v);if(mm){let j=x.c.findIndex(z=>z.id===mm.id);if(j<0){x.c.unshift(mm);j=0}x.sel=j;x.on=true;$('lstMsg').textContent=''}else $('lstMsg').textContent='Kode "'+v+'" tidak ada di master.'}lstRender()});
