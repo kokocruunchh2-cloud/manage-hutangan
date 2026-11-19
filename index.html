@@ -487,23 +487,23 @@ function parseInsuranceText(txt){
  const out=[];
  const units='tablet|tablets|tab|tabs|kapsul|capsule|cap|sachet|sach|botol|btl|ml|ampul|amp|vial|pen|tube|pcs|piece|strip|supp|ovula|drop|box|unit|lembar|buah|puff|pack|flakon';
  const unitRe=new RegExp('(?:^|\\s)(\\d+(?:[.,]\\d+)?)\\s*('+units+')\\b','i');
- const isHeading=s=>/^HUTANG\\s+LUNAS\\b/i.test(s)||/^HUTANG\\s+RANAP\\b/i.test(s)||/^[-=*_\\s]*$/.test(s);
- txt.split(/\\r?\\n/).forEach(line=>{
+ const isHeading=s=>/^HUTANG\s+LUNAS\b/i.test(s)||/^HUTANG\s+RANAP\b/i.test(s)||/^[-=*_\s]*$/.test(s);
+ txt.split(/\r?\n/).forEach(line=>{
   let s=line.trim();if(!s||isHeading(s))return;
   // Baris dapat diawali nama pasien/penjamin sebelum tanda titik dua.
   if(s.includes(':'))s=s.slice(s.lastIndexOf(':')+1).trim();
   if(!s)return;
   // Pecah obat yang ditulis berurutan dengan koma; koma desimal tetap aman.
-  const parts=s.split(/,\\s+(?=[A-Z][a-zA-Z])/);
+  const parts=s.split(/,\s+(?=[A-Z][a-zA-Z])/);
   parts.forEach(part=>{
    let p=part.trim().replace(/^[-•;]+|[-;]+$/g,'');if(!p)return;
    const m=unitRe.exec(p);if(!m)return;
    const qty=parseFloat(m[1].replace(',','.'));if(!(qty>0))return;
    let name=p.slice(0,m.index+m[0].indexOf(m[1])).trim();
-   name=name.replace(/[=*#:\\-\\s]+$/g,'').replace(/^[:\\-\\s]+/g,'').trim();
+   name=name.replace(/[=*#:\-\s]+$/g,'').replace(/^[:\-\s]+/g,'').trim();
    if(!name)return;
    // Buang kata pengantar umum yang bukan bagian nama obat.
-   name=name.replace(/^(?:obat\\s+)?/i,'').trim();
+   name=name.replace(/^(?:obat\s+)?/i,'').trim();
    out.push({raw:name,qty:Math.round(qty),c:cands(name).map(x=>x[1]),sel:-1,on:true,kat:'umum'});
   });
  });
