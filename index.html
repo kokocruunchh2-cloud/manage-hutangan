@@ -536,7 +536,7 @@ function lstRender(){
  $('lstAdd').onclick=lstAdd}
 function lstAdd(){let n=0;
  LST.forEach(x=>{if(!x.on||x.sel<0||!(x.qty>0))return;const m=x.c[x.sel];
-  S.hutang.push({k:uid(),tgl:today(),kat:x.kat||(sfx(x.raw)==='#'||sfx(m.nama)==='#')?'bpjs':(sfx(x.raw)==='*'||sfx(m.nama)==='*')?'umum':$('hK').value,ket:$('lstKet').value.trim(),pihak:$('lstDist').value.trim()||m.distributor||DIST_BY_ID[String(m.id)]||'-',id:m.id,nama:m.nama,qty:x.qty,hpp:m.hpp,lunas:false});n++});
+  S.hutang.push({k:uid(),tgl:today(),kat:(x.kat||(sfx(x.raw)==='#'||sfx(m.nama)==='#'?'bpjs':(sfx(x.raw)==='*'||sfx(m.nama)==='*'?'umum':$('hK').value))),ket:$('lstKet').value.trim(),pihak:$('lstDist').value.trim()||m.distributor||DIST_BY_ID[String(m.id)]||'-',id:m.id,nama:m.nama,qty:x.qty,hpp:m.hpp,lunas:false});n++});
  LST=LST.filter(x=>!(x.on&&x.sel>=0&&x.qty>0));save();render();lstRender();$('lstMsg').textContent=n+' hutangan ditambahkan.'}
 document.addEventListener('change',e=>{const t=e.target.closest('[data-l]');if(!t)return;const x=LST[+t.dataset.i];if(!x)return;const k=t.dataset.l;
  if(k=='on')x.on=t.checked;else if(k=='q')x.qty=parseInt(t.value,10)||0;else if(k=='s'){x.sel=+t.value;if(x.sel<0)x.on=false}else if(k=='id'){const v=t.value.trim(),mm=S.master.find(z=>String(z.id)===v);if(mm){let j=x.c.findIndex(z=>z.id===mm.id);if(j<0){x.c.unshift(mm);j=0}x.sel=j;x.on=true;$('lstMsg').textContent=''}else $('lstMsg').textContent='Kode "'+v+'" tidak ada di master.'}lstRender()});
