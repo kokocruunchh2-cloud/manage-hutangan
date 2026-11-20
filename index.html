@@ -514,7 +514,24 @@ function parseInsuranceText(txt){
   const candidates=cands(name).map(x=>x[1]);
   out.push({raw:name,qty:qty>0?qty:0,c:candidates,sel:candidates.length?0:-1,on:true,kat:'umum'});
  });
- return out;
+ // Gabungkan baris dengan nama obat yang sama setelah normalisasi spasi/tanda baca.
+ // Contoh: "Candesartan 8mg" dan "candesartan 8 mg" menjadi satu baris.
+ const merged=[],byName=new Map();
+ out.forEach(item=>{
+  const key=String(item.raw||'').toLocaleLowerCase('id').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+  if(!key){merged.push(item);return;}
+  if(!byName.has(key)){
+   const copy={...item,c:[...item.c]};
+   byName.set(key,copy);merged.push(copy);
+  }else{
+   const prev=byName.get(key);
+   prev.qty=(Number(prev.qty)||0)+(Number(item.qty)||0);
+   item.c.forEach(m=>{if(!prev.c.some(x=>String(x.id)===String(m.id)))prev.c.push(m)});
+   if(prev.sel<0&&prev.c.length)prev.sel=0;
+  }
+ });
+ merged.duplicatesMerged=out.length-merged.length;
+ return merged;
 }
 $('insImpGo').onclick=()=>{
  const txt=$('insImpT').value.trim();
@@ -522,7 +539,7 @@ $('insImpGo').onclick=()=>{
  const parsed=parseInsuranceText(txt);
  LST=parsed;
  const hit=parsed.filter(x=>x.c.length).length,miss=parsed.length-hit;
- $('insImpMsg').textContent=parsed.length+' obat terbaca · '+hit+' cocok dengan Master Barang · '+miss+' perlu dicocokkan manual.';
+ $('insImpMsg').textContent=parsed.length+' obat unik terbaca'+(parsed.duplicatesMerged?' · '+parsed.duplicatesMerged+' baris duplikat digabung':'')+' · '+hit+' cocok dengan Master Barang · '+miss+' perlu dicocokkan manual.';
  lstRender();
  if(!parsed.length)$('insImpMsg').textContent='Belum ada obat yang terbaca. Pastikan setiap obat memiliki jumlah dan satuan (mis. 30 tab, 1 tube, 4 pen).';
 };
