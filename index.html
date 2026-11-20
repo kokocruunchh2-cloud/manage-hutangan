@@ -608,8 +608,9 @@ $('hExp').onclick=async()=>{
   wd.getColumn(1).width=18;wd.getColumn(2).width=48;
   ['KODE BARANG','DISTRIBUTOR'].forEach((v,i)=>{const cl=wd.getRow(1).getCell(i+1);cl.value=v;cl.font={bold:true};cl.border=bd});
   const isInternalDistributor=dist=>/^(?:APOTEK\b|APT\.?\s|RS\b|RSUD\b|RUMAH SAKIT\b)/i.test(String(dist||'').trim());
-  const exportDist=new Map(Object.entries(DIST_BY_ID).filter(([id,dist])=>!isInternalDistributor(dist)));
-  S.master.forEach(m=>{const id=String(m.id||'').trim(),dist=String(m.distributor||'').trim();if(id&&dist&&!isInternalDistributor(dist))exportDist.set(id,dist)});
+  const cleanDistributorList=value=>String(value||'').split(/\s*;\s*/).map(v=>v.trim()).filter(v=>v&&!isInternalDistributor(v)).filter((v,i,a)=>a.findIndex(x=>x.toLowerCase()===v.toLowerCase())===i).join('; ');
+  const exportDist=new Map(Object.entries(DIST_BY_ID).map(([id,dist])=>[id,cleanDistributorList(dist)]).filter(([id,dist])=>dist));
+  S.master.forEach(m=>{const id=String(m.id||'').trim(),dist=cleanDistributorList(m.distributor);if(id&&dist)exportDist.set(id,dist)});
   [...exportDist.entries()].forEach(([id,dist],i)=>{const rr=wd.getRow(i+2);rr.getCell(1).value=/^\d+$/.test(id)?Number(id):id;rr.getCell(2).value=dist;rr.getCell(1).border=bd;rr.getCell(2).border=bd});
   const defs=[['bpjs','UTANG OBAT','UTANGAN OBAT BPJS DAN REGULER'],['umum','UTANG UMUM DAN ASURANSI','UTANGAN OBAT UMUM DAN ASURANSI'],['reagen','REAGEN','UTANGAN REAGEN']];
   defs.forEach(([c,sn,title])=>{
@@ -619,7 +620,7 @@ $('hExp').onclick=async()=>{
    ['NO.','KODE BARANG','NAMA OBAT','JUMLAH (Tablet/Botol)','KETERANGAN','HPP','TOTAL HARGA','DISTRIBUTOR'].forEach((v,i)=>{const cl=ws.getRow(2).getCell(i+1);cl.value=v;cl.font={bold:true};cl.alignment={horizontal:i==7?'left':'center',vertical:'middle'};cl.border=bd});
    const selectedBatch=$('hExpBatch')?$('hExpBatch').value:'all';
    const L=S.hutang.filter(x=>(x.kat||'umum')===c&&!x.lunas&&(selectedBatch==='all'||(selectedBatch==='legacy'?!x.batchId:x.batchId===selectedBatch)));let sum=0;
-   L.forEach((x,i)=>{const r=i+3,row=ws.getRow(r),master=S.master.find(m=>String(m.id)===String(x.id)),hpp=master?(Number(master.hpp)||0):hp(x),tt=x.qty*hpp,distForExport=exportDist.get(String(x.id))||([master&&master.distributor,DIST_BY_ID[String(x.id)],x.pihak].find(d=>d&&!isInternalDistributor(d))||'');sum+=tt;
+   L.forEach((x,i)=>{const r=i+3,row=ws.getRow(r),master=S.master.find(m=>String(m.id)===String(x.id)),hpp=master?(Number(master.hpp)||0):hp(x),tt=x.qty*hpp,distForExport=cleanDistributorList(exportDist.get(String(x.id))||[master&&master.distributor,DIST_BY_ID[String(x.id)],x.pihak].find(Boolean)||'');sum+=tt;
     row.getCell(1).value=i+1;row.getCell(2).value=x.id?(isNaN(x.id)?String(x.id):Number(x.id)):'';row.getCell(3).value=x.nama;row.getCell(4).value=x.qty;row.getCell(5).value=x.ket||'';row.getCell(6).value={formula:`IFERROR(VLOOKUP(B${r},'MASTER BARANG'!$A:$C,3,FALSE),0)`,result:hpp};row.getCell(7).value={formula:'D'+r+'*F'+r,result:tt};row.getCell(8).value={formula:`IFERROR(VLOOKUP(B${r},'MASTER DISTRIBUTOR'!$A:$B,2,FALSE),\"\")`,result:distForExport};
     for(let k=1;k<=8;k++){const cl=row.getCell(k);cl.border=bd;cl.alignment={vertical:'middle',horizontal:(k==3||k==8)?'left':'center'}}
     row.getCell(7).numFmt=acct;row.getCell(7).alignment={vertical:'middle'}});
