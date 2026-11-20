@@ -488,13 +488,13 @@ function parseInsuranceText(txt){
  // Ambil jumlah kemasan, bukan angka dosis/kekuatan. Satuan ml sengaja tidak dipakai.
  const units='tablets?|tabs?|kapsul|kaps|capsules?|caps?|sachets?|sach|botot|botol|btl|ampul|amps?|vials?|pens?|tubes?|pcs?|pieces?|pc|strip|supp|ovula|drops?|box|unit|lembar|buah|puff|packs?|flakon';
  const qtyRe=new RegExp('([0-9]+(?:[.,][0-9]+)?)\\s*('+units+')\\b','ig');
- const isHeading=s=>/^HUTANG(?:\\s+LUNAS)?\\s+\\d{1,2}[\\/-]\\d{1,2}[\\/-]\\d{2,4}/i.test(s)||/^HUTANG\\s+LUNAS\\b/i.test(s)||/^HUTANG\\s+RANAP\\b/i.test(s)||/^HUTANG\\s+UMUM/i.test(s)||/^[-=*_\\s]*$/.test(s);
- txt.split(/\\r?\\n/).forEach(line=>{
+ const isHeading=s=>/^HUTANG(?:\s+LUNAS)?\s+\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}/i.test(s)||/^HUTANG\s+LUNAS\b/i.test(s)||/^HUTANG\s+RANAP\b/i.test(s)||/^HUTANG\s+UMUM/i.test(s)||/^[-=*_ \t]*$/.test(s);
+ txt.split(/\r?\n/).forEach(line=>{
   let p=line.trim();if(!p||isHeading(p))return;
-  p=p.replace(/^\\d+[.)]?\\s*/,'').replace(/^[•▪–-]+\\s*/,'').trim();
+  p=p.replace(/^\d+[.)]?\s*/,'').replace(/^[•▪–-]+\s*/,'').trim();
   // Buang identitas pasien/penjamin yang berada sebelum nama obat.
   if(p.includes(':'))p=p.slice(p.lastIndexOf(':')+1).trim();
-  p=p.replace(/^[-•]+\\s*/,'').trim();
+  p=p.replace(/^[-•]+\s*/,'').trim();
   if(!p)return;
   // Satu baris sumber umumnya satu obat. Ambil jumlah terakhir yang diikuti satuan kemasan.
   const matches=[...p.matchAll(new RegExp(qtyRe.source,'ig'))];
@@ -503,8 +503,8 @@ function parseInsuranceText(txt){
   const qty=parseFloat(m[1].replace(',','.'));
   if(!(qty>0))return;
   let name=p.slice(0,m.index).trim();
-  name=name.replace(/[\\s(=×x*#,:;\\-]+$/g,'').replace(/^[:\\-\\s]+/g,'').trim();
-  name=name.replace(/^(?:obat\\s+)?/i,'').trim();
+  name=name.replace(/[\s(=×x*#,:;-]+$/g,'').replace(/^[:\-\s]+/g,'').trim();
+  name=name.replace(/^(?:obat\s+)?/i,'').trim();
   if(!name)return;
   out.push({raw:name,qty:Math.round(qty),c:cands(name).map(x=>x[1]),sel:-1,on:true,kat:'umum'});
  });
