@@ -556,6 +556,11 @@ $('hExp').onclick=async()=>{
   [18,48,22].forEach((w,i)=>wm.getColumn(i+1).width=w);
   ['KODE BARANG','NAMA BARANG','HPP'].forEach((v,i)=>{const cl=wm.getRow(1).getCell(i+1);cl.value=v;cl.font={bold:true};cl.alignment={horizontal:'center',vertical:'middle'};cl.border=bd});
   S.master.forEach((m,i)=>{const row=wm.getRow(i+2),code=m.id?(isNaN(m.id)?String(m.id):Number(m.id)):'';row.getCell(1).value=code;row.getCell(2).value=m.nama||'';row.getCell(3).value=Number(m.hpp)||0;for(let k=1;k<=3;k++){row.getCell(k).border=bd;row.getCell(k).alignment={vertical:'middle',horizontal:k===2?'left':'center'}}row.getCell(3).numFmt=acct});
+  // Sheet referensi distributor agar kolom DISTRIBUTOR di setiap sheet memakai rumus Excel.
+  const wd=wb.addWorksheet('MASTER DISTRIBUTOR',{state:'hidden',views:[{state:'frozen',ySplit:1}]});
+  wd.getColumn(1).width=18;wd.getColumn(2).width=48;
+  ['KODE BARANG','DISTRIBUTOR'].forEach((v,i)=>{const cl=wd.getRow(1).getCell(i+1);cl.value=v;cl.font={bold:true};cl.border=bd});
+  Object.entries(DIST_BY_ID).forEach(([id,dist],i)=>{const rr=wd.getRow(i+2);rr.getCell(1).value=/^\\d+$/.test(id)?Number(id):id;rr.getCell(2).value=dist;rr.getCell(1).border=bd;rr.getCell(2).border=bd});
   const defs=[['bpjs','UTANG OBAT','UTANGAN OBAT BPJS DAN REGULER'],['umum','UTANG UMUM DAN ASURANSI','UTANGAN OBAT UMUM DAN ASURANSI'],['reagen','REAGEN','UTANGAN REAGEN']];
   defs.forEach(([c,sn,title])=>{
    const ws=wb.addWorksheet(sn,{views:[{state:'frozen',ySplit:2}]});
@@ -564,7 +569,7 @@ $('hExp').onclick=async()=>{
    ['NO.','KODE BARANG','NAMA OBAT','JUMLAH (Tablet/Botol)','KETERANGAN','HPP','TOTAL HARGA','DISTRIBUTOR'].forEach((v,i)=>{const cl=ws.getRow(2).getCell(i+1);cl.value=v;cl.font={bold:true};cl.alignment={horizontal:i==7?'left':'center',vertical:'middle'};cl.border=bd});
    const L=S.hutang.filter(x=>(x.kat||'umum')===c&&!x.lunas);let sum=0;
    L.forEach((x,i)=>{const r=i+3,row=ws.getRow(r),master=S.master.find(m=>String(m.id)===String(x.id)),hpp=master?(Number(master.hpp)||0):hp(x),tt=x.qty*hpp;sum+=tt;
-    row.getCell(1).value=i+1;row.getCell(2).value=x.id?(isNaN(x.id)?String(x.id):Number(x.id)):'';row.getCell(3).value=x.nama;row.getCell(4).value=x.qty;row.getCell(5).value=x.ket||'';row.getCell(6).value={formula:`IFERROR(VLOOKUP(B${r},'MASTER BARANG'!$A:$C,3,FALSE),0)`,result:hpp};row.getCell(7).value={formula:'D'+r+'*F'+r,result:tt};row.getCell(8).value=x.pihak||'';
+    row.getCell(1).value=i+1;row.getCell(2).value=x.id?(isNaN(x.id)?String(x.id):Number(x.id)):'';row.getCell(3).value=x.nama;row.getCell(4).value=x.qty;row.getCell(5).value=x.ket||'';row.getCell(6).value={formula:`IFERROR(VLOOKUP(B${r},'MASTER BARANG'!$A:$C,3,FALSE),0)`,result:hpp};row.getCell(7).value={formula:'D'+r+'*F'+r,result:tt};row.getCell(8).value={formula:`IFERROR(VLOOKUP(B${r},'MASTER DISTRIBUTOR'!$A:$B,2,FALSE),\"\")`,result:DIST_BY_ID[String(x.id)]||x.pihak||''};
     for(let k=1;k<=8;k++){const cl=row.getCell(k);cl.border=bd;cl.alignment={vertical:'middle',horizontal:(k==3||k==8)?'left':'center'}}
     row.getCell(7).numFmt=acct;row.getCell(7).alignment={vertical:'middle'}});
    const tr=L.length+3,trw=ws.getRow(tr);
