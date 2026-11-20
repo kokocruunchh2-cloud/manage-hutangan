@@ -607,8 +607,9 @@ $('hExp').onclick=async()=>{
   const wd=wb.addWorksheet('MASTER DISTRIBUTOR',{state:'hidden',views:[{state:'frozen',ySplit:1}]});
   wd.getColumn(1).width=18;wd.getColumn(2).width=48;
   ['KODE BARANG','DISTRIBUTOR'].forEach((v,i)=>{const cl=wd.getRow(1).getCell(i+1);cl.value=v;cl.font={bold:true};cl.border=bd});
-  const isInternalDistributor=dist=>/^(?:APOTEK|APT\.?|RSUD?|RUMAH\s+SAKIT)(?=$|[\s.,\-])/i.test(String(dist||'').replace(/[\\u00a0\\u200b]/g,' ').replace(/\\s+/g,' ').trim());
-  const cleanDistributorList=value=>String(value||'').replace(/[\\u00a0\\u200b]/g,' ').split(/\\s*;\\s*/).map(v=>v.replace(/\\s+/g,' ').trim()).filter(v=>v&&!isInternalDistributor(v)).filter((v,i,a)=>a.findIndex(x=>x.toLowerCase()===v.toLowerCase())===i).join('; ');
+  const normalizeDistributorText=value=>String(value||'').replace(/\u00a0/g,' ').replace(/\u200b/g,' ').replace(/\s+/g,' ').trim();
+  const isInternalDistributor=dist=>/^(?:APOTEK|APT\.?|RSUD?|RUMAH\s+SAKIT)(?=$|[\s.,\-])/i.test(normalizeDistributorText(dist));
+  const cleanDistributorList=value=>normalizeDistributorText(value).split(';').map(normalizeDistributorText).filter(v=>v&&!isInternalDistributor(v)).filter((v,i,a)=>a.findIndex(x=>x.toLowerCase()===v.toLowerCase())===i).join('; ');
   const exportDist=new Map(Object.entries(DIST_BY_ID).map(([id,dist])=>[id,cleanDistributorList(dist)]).filter(([id,dist])=>dist));
   S.master.forEach(m=>{const id=String(m.id||'').trim(),dist=cleanDistributorList(m.distributor);if(id&&dist)exportDist.set(id,dist)});
   [...exportDist.entries()].forEach(([id,dist],i)=>{const rr=wd.getRow(i+2);rr.getCell(1).value=/^\d+$/.test(id)?Number(id):id;rr.getCell(2).value=dist;rr.getCell(1).border=bd;rr.getCell(2).border=bd});
