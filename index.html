@@ -609,7 +609,7 @@ $('hExp').onclick=async()=>{
   ['KODE BARANG','DISTRIBUTOR'].forEach((v,i)=>{const cl=wd.getRow(1).getCell(i+1);cl.value=v;cl.font={bold:true};cl.border=bd});
   // Filter entri apotek/rumah sakit tanpa mengubah teks nama distributor resmi.
   const isInternalDistributor=dist=>/^[\s\u00a0\u200b]*(?:APOTEK|APT\.?|RS(?:UD?)?|RUMAH\s+SAKIT)(?=$|[\s\u00a0.,\-])/i.test(String(dist||''));
-  const cleanDistributorList=value=>String(value||'').split(';').filter(v=>v.trim()&&!isInternalDistributor(v)).join('; '); 
+  const cleanDistributorList=value=>String(value||'').split(';').filter(v=>v.trim()&&!isInternalDistributor(v)).join(';'); 
   const exportDist=new Map(Object.entries(DIST_BY_ID).map(([id,dist])=>[id,cleanDistributorList(dist)]).filter(([id,dist])=>dist));
   S.master.forEach(m=>{const id=String(m.id||'').trim(),dist=cleanDistributorList(m.distributor);if(id&&dist)exportDist.set(id,dist)});
   [...exportDist.entries()].forEach(([id,dist],i)=>{const rr=wd.getRow(i+2);rr.getCell(1).value=/^\d+$/.test(id)?Number(id):id;rr.getCell(2).value=dist;rr.getCell(1).border=bd;rr.getCell(2).border=bd});
