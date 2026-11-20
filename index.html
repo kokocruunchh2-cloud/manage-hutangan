@@ -485,25 +485,31 @@ function cands(name){const sx=sfx(name),t=tk2(name.replace(/[#*]\s*$/,'')),L=[];
  return L.sort((a,b)=>b[0]-a[0]).slice(0,6)}
 function parseInsuranceText(txt){
  const out=[];
- const units='tablet|tablets|tab|tabs|kapsul|capsule|cap|sachet|sach|botol|btl|ml|ampul|amp|vial|pen|tube|pcs|piece|strip|supp|ovula|drop|box|unit|lembar|buah|puff|pack|flakon';
- const unitRe=new RegExp('(?:^|\\s)(\\d+(?:[.,]\\d+)?)\\s*('+units+')\\b','i');
- const isHeading=s=>/^HUTANG\s+LUNAS\b/i.test(s)||/^HUTANG\s+RANAP\b/i.test(s)||/^[-=*_\s]*$/.test(s);
- txt.split(/\r?\n/).forEach(line=>{
+ // Satuan ini adalah jumlah kemasan/pemberian, bukan kekuatan atau konsentrasi dosis.
+ // "ml" sengaja tidak dipakai sebagai satuan qty karena biasanya bagian dari dosis/ukuran sediaan.
+ const units='tablets?|tabs?|kapsul|capsules?|caps?|sachets?|sach|botot|botol|btl|ampul|amps?|vials?|pens?|tubes?|pcs?|pieces?|strip|supp|ovula|drops?|box|unit|lembar|buah|puff|packs?|flakon';
+ const unitRe=new RegExp('(?:^|[=×x\\s(])([0-9]+(?:[.,][0-9]+)?)\\s*('+units+')\\b','i');
+ const isHeading=s=>/^HUTANG(?:\\s+LUNAS)?\\s+\\d{1,2}[\\/-]\\d{1,2}[\\/-]\\d{2,4}/i.test(s)||/^HUTANG\\s+LUNAS\\b/i.test(s)||/^HUTANG\\s+RANAP\\b/i.test(s)||/^[-=*_\\s]*$/.test(s);
+ txt.split(/\\r?\\n/).forEach(line=>{
   let s=line.trim();if(!s||isHeading(s))return;
-  // Baris dapat diawali nama pasien/penjamin sebelum tanda titik dua.
+  // Buang nomor urut di awal baris.
+  s=s.replace(/^\\d+[.)]\\s*/,'');
+  // Baris dapat diawali nama pasien/penjamin sebelum titik dua.
   if(s.includes(':'))s=s.slice(s.lastIndexOf(':')+1).trim();
   if(!s)return;
-  // Pecah obat yang ditulis berurutan dengan koma; koma desimal tetap aman.
-  const parts=s.split(/,\s+(?=[A-Z][a-zA-Z])/);
+  const parts=s.split(/,\\s+(?=[A-Z][a-zA-Z])/);
   parts.forEach(part=>{
    let p=part.trim().replace(/^[-•;]+|[-;]+$/g,'');if(!p)return;
-   const m=unitRe.exec(p);if(!m)return;
+   // Cari jumlah yang diikuti satuan kemasan. Angka dosis seperti 15 mg,
+   // 0,05%, 500 mg/ml atau 60 ml tidak dianggap sebagai jumlah barang.
+   const matches=[...p.matchAll(new RegExp(unitRe.source,'ig'))];
+   if(!matches.length)return;
+   const m=matches[matches.length-1];
    const qty=parseFloat(m[1].replace(',','.'));if(!(qty>0))return;
-   let name=p.slice(0,m.index+m[0].indexOf(m[1])).trim();
-   name=name.replace(/[=*#:\-\s]+$/g,'').replace(/^[:\-\s]+/g,'').trim();
+   let name=p.slice(0,m.index).trim();
+   name=name.replace(/(?:=|×|x|\\s)+$/i,'').replace(/[=*#:\\-\\s]+$/g,'').replace(/^[:\\-\\s]+/g,'').trim();
    if(!name)return;
-   // Buang kata pengantar umum yang bukan bagian nama obat.
-   name=name.replace(/^(?:obat\s+)?/i,'').trim();
+   name=name.replace(/^(?:obat\\s+)?/i,'').trim();
    out.push({raw:name,qty:Math.round(qty),c:cands(name).map(x=>x[1]),sel:-1,on:true,kat:'umum'});
   });
  });
