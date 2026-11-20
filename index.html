@@ -497,7 +497,8 @@ function parseInsuranceText(txt){
   const parts=s.split(/,\s+(?=[A-Z][a-zA-Z])/);
   parts.forEach(part=>{
    let p=part.trim().replace(/^[-•;]+|[-;]+$/g,'');if(!p)return;
-   const matches=[...p.matchAll(new RegExp(unitRe.source,'ig'))];if(!matches.length)return;\n   const m=matches[matches.length-1];
+   const matches=[...p.matchAll(new RegExp(unitRe.source,'ig'))];if(!matches.length)return;
+    const m=matches[matches.length-1];
    const qty=parseFloat(m[1].replace(',','.'));if(!(qty>0))return;
    let name=p.slice(0,m.index+m[0].indexOf(m[1])).trim();
    name=name.replace(/[=*#:\-\s]+$/g,'').replace(/^[:\-\s]+/g,'').trim();
