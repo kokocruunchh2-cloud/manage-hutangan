@@ -485,28 +485,39 @@ function cands(name){const sx=sfx(name),t=tk2(name.replace(/[#*]\s*$/,'')),L=[];
  return L.sort((a,b)=>b[0]-a[0]).slice(0,6)}
 function parseInsuranceText(txt){
  const out=[];
- const units='tablet|tablets|tab|tabs|kapsul|capsule|cap|sachet|sach|botol|btl|ampul|amp|vial|pen|tube|pcs|piece|pc|strip|supp|ovula|drop|box|unit|lembar|buah|puff|pack|flakon';
- const unitRe=new RegExp('(?:^|\\s)(\\d+(?:[.,]\\d+)?)\\s*('+units+')\\b','i');
- const isHeading=s=>/^HUTANG\s+LUNAS\b/i.test(s)||/^HUTANG\s+RANAP\b/i.test(s)||/^[-=*_\s]*$/.test(s);
- txt.split(/\r?\n/).forEach(line=>{
-  let s=line.trim();if(!s||isHeading(s))return;
-  // Baris dapat diawali nama pasien/penjamin sebelum tanda titik dua.
-  if(s.includes(':'))s=s.slice(s.lastIndexOf(':')+1).trim();
+ const units='tablets?|tabs?|kapsul|capsule|caps|cap|sachets?|sach|botol|botot|btl|ampul|amps?|vial|pens?|tubes?|pcs?|pieces?|strip|supp|ovula|drops?|box|unit|lembar|buah|puff|packs?|flakon';
+ const unitRe=new RegExp('(?:^|[\\s(=])([0-9]+(?:[.,][0-9]+)?)\\s*('+units+')\\b','ig');
+ const isHeading=s=>/^HUTANG(?:\\s|$)/i.test(s)||/^\\d{1,2}[\\/-]\\d{1,2}[\\/-]\\d{4}$/.test(s)||/^[-=* _\\s]*$/.test(s);
+ txt.split(/\\r?\\n/).forEach(line=>{
+  let s=line.trim();
+  if(!s||isHeading(s))return;
+  // Hilangkan nomor urut di awal baris.
+  s=s.replace(/^\\s*(?:\\d+\\s*[.)]\\s*|[-•]\\s*)/,'').trim();
   if(!s)return;
-  // Pecah obat yang ditulis berurutan dengan koma; koma desimal tetap aman.
-  const parts=s.split(/,\s+(?=[A-Z][a-zA-Z])/);
-  parts.forEach(part=>{
-   let p=part.trim().replace(/^[-•;]+|[-;]+$/g,'');if(!p)return;
-   const matches=[...p.matchAll(new RegExp(unitRe.source,'ig'))];if(!matches.length)return;
-    const m=matches[matches.length-1];
-   const qty=parseFloat(m[1].replace(',','.'));if(!(qty>0))return;
-   let name=p.slice(0,m.index+m[0].indexOf(m[1])).trim();
-   name=name.replace(/[=*#:\-\s]+$/g,'').replace(/^[:\-\s]+/g,'').trim();
-   if(!name)return;
-   // Buang kata pengantar umum yang bukan bagian nama obat.
-   name=name.replace(/^(?:obat\s+)?/i,'').trim();
-   out.push({raw:name,qty:Math.round(qty),c:cands(name).map(x=>x[1]),sel:-1,on:true,kat:'umum'});
-  });
+  let qty=0, cut=-1;
+  // Cari jumlah dengan satuan kemasan di seluruh baris, bukan hanya di ujung.
+  const matches=[...s.matchAll(new RegExp(unitRe.source,'ig'))];
+  if(matches.length){
+   const m=matches[matches.length-1];
+   const n=m[1].replace(',','.');
+   qty=Math.round(parseFloat(n));
+   cut=m.index+m[0].indexOf(m[1]);
+  }else{
+   // Beberapa sumber menulis jumlah dalam kurung tanpa satuan, misalnya (60).
+   const m=[...s.matchAll(/\\(\\s*(\\d+)\\s*\\)/g)].pop();
+   if(m){qty=parseInt(m[1],10);cut=m.index+m[0].indexOf(m[1]);}
+  }
+  let name=cut>=0?s.slice(0,cut).trim():s;
+  // Jika nama pasien berada sebelum titik dua, ambil sisi setelah titik dua.
+  // Jika titik dua berada setelah qty, bagian itu otomatis tidak ikut karena name dipotong lebih dulu.
+  if(name.includes(':'))name=name.slice(name.lastIndexOf(':')+1).trim();
+  // Bersihkan tanda pemisah dan keterangan pasien yang ditulis setelah tanda sama dengan tanpa qty.
+  name=name.replace(/^[-•;:]+/,'').replace(/[;,]+$/,'').trim();
+  if(cut<0&&name.includes('='))name=name.split('=')[0].trim();
+  name=name.replace(/[=*#\\s]+$/g,'').trim();
+  if(!name||!/[a-zA-Z]/.test(name))return;
+  name=name.replace(/^(?:obat\\s+)/i,'').trim();
+  out.push({raw:name,qty:qty>0?qty:0,c:cands(name).map(x=>x[1]),sel:-1,on:true,kat:'umum'});
  });
  return out;
 }
