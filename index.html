@@ -607,10 +607,10 @@ $('hExp').onclick=async()=>{
   const wd=wb.addWorksheet('MASTER DISTRIBUTOR',{state:'hidden',views:[{state:'frozen',ySplit:1}]});
   wd.getColumn(1).width=18;wd.getColumn(2).width=48;
   ['KODE BARANG','DISTRIBUTOR'].forEach((v,i)=>{const cl=wd.getRow(1).getCell(i+1);cl.value=v;cl.font={bold:true};cl.border=bd});
-  const exportDist=new Map(Object.entries(DIST_BY_ID));
-  const isInternalDistributor=dist=>/\b(?:APOTEK|RS)\b/i.test(String(dist||''));
-  S.master.forEach(m=>{const id=String(m.id||'').trim(),dist=String(m.distributor||'').trim();if(id&&dist&&!isInternalDistributor(dist))exportDist.set(id,dist);else if(id&&isInternalDistributor(dist))exportDist.delete(id)});
-  [...exportDist.entries()].filter(([id,dist])=>!isInternalDistributor(dist)).forEach(([id,dist],i)=>{const rr=wd.getRow(i+2);rr.getCell(1).value=/^\d+$/.test(id)?Number(id):id;rr.getCell(2).value=dist;rr.getCell(1).border=bd;rr.getCell(2).border=bd});
+  const isInternalDistributor=dist=>/^(?:APOTEK\b|APT\.?\s|RS\b|RSUD\b|RUMAH SAKIT\b)/i.test(String(dist||'').trim());
+  const exportDist=new Map(Object.entries(DIST_BY_ID).filter(([id,dist])=>!isInternalDistributor(dist)));
+  S.master.forEach(m=>{const id=String(m.id||'').trim(),dist=String(m.distributor||'').trim();if(id&&dist&&!isInternalDistributor(dist))exportDist.set(id,dist)});
+  [...exportDist.entries()].forEach(([id,dist],i)=>{const rr=wd.getRow(i+2);rr.getCell(1).value=/^\d+$/.test(id)?Number(id):id;rr.getCell(2).value=dist;rr.getCell(1).border=bd;rr.getCell(2).border=bd});
   const defs=[['bpjs','UTANG OBAT','UTANGAN OBAT BPJS DAN REGULER'],['umum','UTANG UMUM DAN ASURANSI','UTANGAN OBAT UMUM DAN ASURANSI'],['reagen','REAGEN','UTANGAN REAGEN']];
   defs.forEach(([c,sn,title])=>{
    const ws=wb.addWorksheet(sn,{views:[{state:'frozen',ySplit:2}]});
