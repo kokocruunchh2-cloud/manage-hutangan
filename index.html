@@ -719,5 +719,18 @@ function render(){
 }
 render();
 </script>
+<script>
+/* Fallback navigasi tab: tetap aktif meskipun script utama mengalami error. */
+document.addEventListener('click', function(e) {
+  const b = e.target.closest('.tabs button');
+  if (!b) return;
+  const target = b.dataset.t;
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  ['h','k','m'].forEach(t => {
+    const panel = document.getElementById('t-' + t);
+    if (panel) panel.classList.toggle('hide', t !== target);
+  });
+});
+</script>
 </body>
 </html>
