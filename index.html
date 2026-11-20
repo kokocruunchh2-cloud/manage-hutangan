@@ -84,6 +84,7 @@ tr.done td{opacity:.5;text-decoration:line-through}
 <div id="hGroups"></div>
 <div class="prev" id="hTot" style="margin-top:16px;font-size:16px"></div>
 <button class="pri" id="hExp" style="margin-top:10px">⬇ Export Excel</button>
+<div style="margin-top:8px;max-width:520px"><label>Kelompok data yang akan diexport</label><select id="hExpBatch"><option value="all">Semua hutangan</option></select><small class="mu">Pilih kelompok hasil copy-paste milikmu. Kelompok teman atau paste lain tidak akan ikut.</small></div>
 <button type="button" id="hAllPaid" style="margin-top:10px;cursor:pointer;position:relative;z-index:2">✓ Tandai semua hutang belum lunas sebagai lunas</button> <span class="msg" id="hAllMsg"></span> <span class="msg" id="hExpMsg"></span>
 <p class="mu">Export berisi hutang yang belum lunas, 3 sheet: UTANG OBAT (BPJS), UTANG UMUM DAN ASURANSI, dan REAGEN.</p>
 </section>
@@ -446,6 +447,7 @@ function matchM(nama,h){const n=nz(nama),tk=tok(nama),sx=sfx(nama);let b=null,bs
   const sc=s+(hm?0.5:0);if(sc>bs){bs=sc;b=m}}
  return b}
 $('hImp').onclick=()=>{
+ const batch=createImportBatch('Impor dari Excel');
  let add=0,skip=0;const un=[];
  tsv($('hImpT').value).forEach(r=>{
   if(r.length<4)return;
@@ -455,11 +457,30 @@ $('hImp').onclick=()=>{
   const h=num(r[4]),dist=(r[r.length-1]||'').trim().replace(/\s+/g,' ');
   const m=matchM(nama,h),nm=m?m.nama:nama;
   const kat=nm.endsWith('#')?'bpjs':nm.endsWith('*')?'umum':$('hK').value;
-  S.hutang.push({k:uid(),tgl:today(),kat,ket:(r[3]||'').trim(),pihak:dist||'-',id:m?m.id:'',nama:nm,qty:q,hpp:m?m.hpp:(isNaN(h)?0:h),lunas:false});
+  S.hutang.push({k:uid(),tgl:today(),batchId:batch.id,batchLabel:batch.label,kat,ket:(r[3]||'').trim(),pihak:dist||'-',id:m?m.id:'',nama:nm,qty:q,hpp:m?m.hpp:(isNaN(h)?0:h),lunas:false});
   add++;if(!m)un.push(nama)});
  $('hImpMsg').textContent=add+' ditambahkan, '+skip+' dilewati (sudah distribusi)'+(un.length?'. Tidak ada di master (pakai HPP dari sheet): '+un.join('; '):'.');
- if(add)$('hImpT').value='';save();render()};
+ if(add)$('hImpT').value='';save();render();if(add)refreshExportBatchOptions(batch.id)};
 let LST=[];
+function createImportBatch(label){
+ const now=new Date(),time=now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+ return {id:'batch-'+uid(),label:label+' · '+today()+' '+time};
+}
+function refreshExportBatchOptions(preferred){
+ const el=$('hExpBatch');if(!el)return;
+ const batches=new Map();
+ (S.hutang||[]).forEach(x=>{if(x.batchId)batches.set(x.batchId,x.batchLabel||'Kelompok impor')});
+ const hasLegacy=(S.hutang||[]).some(x=>!x.batchId);
+ const previous=preferred||el.value;
+ let html='<option value="all">Semua hutangan</option>';
+ if(hasLegacy)html+='<option value="legacy">Data lama / input manual</option>';
+ batches.forEach((label,id)=>{html+='<option value="'+esc(id)+'">'+esc(label)+'</option>'});
+ el.innerHTML=html;
+ const valid=[...el.options].some(o=>o.value===previous);
+ if(valid)el.value=previous;
+ else if(batches.size){const last=[...(S.hutang||[])].reverse().find(x=>x.batchId);el.value=last?last.batchId:'all'}
+ else if(hasLegacy)el.value='legacy';else el.value='all';
+}
 const FM={tablet:'tab',kaplet:'tab',caplet:'tab',capl:'tab',kap:'cap',kapsul:'cap',capsul:'cap',caps:'cap',capsule:'cap',sirup:'syr',syrup:'syr',sirop:'syr',susp:'syr',suspensi:'syr',injeksi:'inj',cream:'cr',krim:'cr',salep:'oint',ointment:'oint'};
 const tk2=s=>s.toLowerCase().replace(/(\d)[.,](\d)/g,'$1_$2').replace(/(\d)([a-z])/g,'$1 $2').replace(/([a-z])(\d)/g,'$1 $2').split(/[^a-z0-9_]+/).filter(Boolean).map(x=>FM[x]||x);
 let MT=null,MTn=-1;
@@ -537,19 +558,21 @@ $('insImpGo').onclick=()=>{
  const txt=$('insImpT').value.trim();
  if(!txt){$('insImpMsg').textContent='Tempel teks daftar asuransi terlebih dahulu.';return}
  const parsed=parseInsuranceText(txt);
- LST=parsed;
+ const batch=createImportBatch('Asuransi');
+ LST=parsed.map(x=>({...x,batchId:batch.id,batchLabel:batch.label}));
  const hit=parsed.filter(x=>x.c.length).length,miss=parsed.length-hit;
  $('insImpMsg').textContent=parsed.length+' obat unik terbaca'+(parsed.duplicatesMerged?' · '+parsed.duplicatesMerged+' baris duplikat digabung':'')+' · '+hit+' cocok dengan Master Barang · '+miss+' perlu dicocokkan manual.';
  lstRender();
  if(!parsed.length)$('insImpMsg').textContent='Belum ada obat yang terbaca. Pastikan setiap obat memiliki jumlah dan satuan (mis. 30 tab, 1 tube, 4 pen).';
 };
 $('lstGo').onclick=()=>{LST=[];$('lstMsg').textContent='';
+ const batch=createImportBatch('Copy-paste hutangan');
  $('lstT').value.split(/\r?\n/).forEach(l=>{l=l.trim();if(!l)return;
   const m=l.match(/^(.*?)\s*:\s*(\d[\d.,]*)\s*(.*)$/);if(!m)return;
   const raw=m[1].trim(),qs=m[2],note=m[3].trim();
   const q=/^\d{1,3}([.,]\d{3})+$/.test(qs)?parseInt(qs.replace(/[.,]/g,''),10):parseInt(qs,10);
   const c=cands(raw).map(x=>x[1]);
-  LST.push({raw,qty:q,note,c,sel:c.length?0:-1,on:c.length>0&&!/distribusi/i.test(note)})});
+  LST.push({raw,qty:q,note,c,sel:c.length?0:-1,on:c.length>0&&!/distribusi/i.test(note),batchId:batch.id,batchLabel:batch.label})});
  $('lstMsg').textContent=LST.length+' baris terbaca, '+LST.filter(x=>x.sel<0).length+' tidak ketemu di master.';lstRender()};
 function lstRender(){
  if(!LST.length){$('lstOut').innerHTML='';return}
@@ -558,10 +581,10 @@ function lstRender(){
   return `<tr style="${x.on?'':'opacity:.5'}"><td><input type="checkbox" style="width:auto" data-l="on" data-i="${i}" ${x.on?'checked':''}></td><td>${esc(x.raw)}${x.note?'<br><span class="mu">'+esc(x.note)+'</span>':''}</td><td><input type="number" min="1" style="width:90px" data-l="q" data-i="${i}" value="${x.qty}"></td><td><input data-l="id" data-i="${i}" value="${m?esc(m.id):''}" style="width:80px"></td><td><select data-l="s" data-i="${i}"><option value="-1">— lewati / tidak ketemu —</option>${x.c.map((c,j)=>`<option value="${j}" ${j==x.sel?'selected':''}>${esc(c.nama)} · ${rp(c.hpp)}</option>`).join('')}</select></td><td class="n">${rp(t)}</td></tr>`}).join('');
  $('lstOut').innerHTML=`<table><thead><tr><th></th><th>Dari daftar</th><th>Qty</th><th>Kode</th><th>Cocok dengan master</th><th class="n">Total</th></tr></thead><tbody>${rows}</tbody><tfoot><tr style="background:var(--ok)"><td colspan="5"><b>${n} baris dipilih</b></td><td class="n"><b>${rp(tot)}</b></td></tr></tfoot></table><button class="pri" id="lstAdd" style="margin-top:8px">Tambahkan ${n} baris ke hutangan</button>`;
  $('lstAdd').onclick=lstAdd}
-function lstAdd(){let n=0;
+function lstAdd(){let n=0,addedBatch='';
  LST.forEach(x=>{if(!x.on||x.sel<0||!(x.qty>0))return;const m=x.c[x.sel];
-  S.hutang.push({k:uid(),tgl:today(),kat:(x.kat||(sfx(x.raw)==='#'||sfx(m.nama)==='#'?'bpjs':(sfx(x.raw)==='*'||sfx(m.nama)==='*'?'umum':$('hK').value))),ket:$('lstKet').value.trim(),pihak:$('lstDist').value.trim()||m.distributor||DIST_BY_ID[String(m.id)]||'-',id:m.id,nama:m.nama,qty:x.qty,hpp:m.hpp,lunas:false});n++});
- LST=LST.filter(x=>!(x.on&&x.sel>=0&&x.qty>0));save();render();lstRender();$('lstMsg').textContent=n+' hutangan ditambahkan.'}
+  S.hutang.push({k:uid(),tgl:today(),batchId:x.batchId||'',batchLabel:x.batchLabel||'',kat:(x.kat||(sfx(x.raw)==='#'||sfx(m.nama)==='#'?'bpjs':(sfx(x.raw)==='*'||sfx(m.nama)==='*'?'umum':$('hK').value))),ket:$('lstKet').value.trim(),pihak:$('lstDist').value.trim()||m.distributor||DIST_BY_ID[String(m.id)]||'-',id:m.id,nama:m.nama,qty:x.qty,hpp:m.hpp,lunas:false});if(x.batchId)addedBatch=x.batchId;n++});
+ LST=LST.filter(x=>!(x.on&&x.sel>=0&&x.qty>0));save();render();if(addedBatch)refreshExportBatchOptions(addedBatch);lstRender();$('lstMsg').textContent=n+' hutangan ditambahkan.'}
 document.addEventListener('change',e=>{const t=e.target.closest('[data-l]');if(!t)return;const x=LST[+t.dataset.i];if(!x)return;const k=t.dataset.l;
  if(k=='on')x.on=t.checked;else if(k=='q')x.qty=parseInt(t.value,10)||0;else if(k=='s'){x.sel=+t.value;if(x.sel<0)x.on=false}else if(k=='id'){const v=t.value.trim(),mm=S.master.find(z=>String(z.id)===v);if(mm){let j=x.c.findIndex(z=>z.id===mm.id);if(j<0){x.c.unshift(mm);j=0}x.sel=j;x.on=true;$('lstMsg').textContent=''}else $('lstMsg').textContent='Kode "'+v+'" tidak ada di master.'}lstRender()});
 document.addEventListener('change',e=>{const t=e.target.closest('[data-hk]');if(!t)return;const x=S.hutang.find(z=>z.k===t.dataset.hk);if(!x)return;const v=t.value.trim(),mm=S.master.find(z=>String(z.id)===v);
@@ -591,7 +614,8 @@ $('hExp').onclick=async()=>{
    [6,13,46,24,20,13,22,32].forEach((w,i)=>ws.getColumn(i+1).width=w);
    ws.mergeCells('A1:H1');const t=ws.getCell('A1');t.value=title;t.font={bold:true,size:18};t.alignment={horizontal:'center',vertical:'middle'};ws.getRow(1).height=30;
    ['NO.','KODE BARANG','NAMA OBAT','JUMLAH (Tablet/Botol)','KETERANGAN','HPP','TOTAL HARGA','DISTRIBUTOR'].forEach((v,i)=>{const cl=ws.getRow(2).getCell(i+1);cl.value=v;cl.font={bold:true};cl.alignment={horizontal:i==7?'left':'center',vertical:'middle'};cl.border=bd});
-   const L=S.hutang.filter(x=>(x.kat||'umum')===c&&!x.lunas);let sum=0;
+   const selectedBatch=$('hExpBatch')?$('hExpBatch').value:'all';
+   const L=S.hutang.filter(x=>(x.kat||'umum')===c&&!x.lunas&&(selectedBatch==='all'||(selectedBatch==='legacy'?!x.batchId:x.batchId===selectedBatch)));let sum=0;
    L.forEach((x,i)=>{const r=i+3,row=ws.getRow(r),master=S.master.find(m=>String(m.id)===String(x.id)),hpp=master?(Number(master.hpp)||0):hp(x),tt=x.qty*hpp;sum+=tt;
     row.getCell(1).value=i+1;row.getCell(2).value=x.id?(isNaN(x.id)?String(x.id):Number(x.id)):'';row.getCell(3).value=x.nama;row.getCell(4).value=x.qty;row.getCell(5).value=x.ket||'';row.getCell(6).value={formula:`IFERROR(VLOOKUP(B${r},'MASTER BARANG'!$A:$C,3,FALSE),0)`,result:hpp};row.getCell(7).value={formula:'D'+r+'*F'+r,result:tt};row.getCell(8).value={formula:`IFERROR(VLOOKUP(B${r},'MASTER DISTRIBUTOR'!$A:$B,2,FALSE),\"\")`,result:DIST_BY_ID[String(x.id)]||x.pihak||''};
     for(let k=1;k<=8;k++){const cl=row.getCell(k);cl.border=bd;cl.alignment={vertical:'middle',horizontal:(k==3||k==8)?'left':'center'}}
@@ -722,6 +746,7 @@ document.addEventListener('change',e=>{
 let dlN=-1;
 function dl(){$('dl').innerHTML=S.master.map(m=>`<option value="${esc(m.nama)}">${esc(m.id)}</option>`).join('')}
 function render(){
+ refreshExportBatchOptions();
  if(dlN!==S.master.length){dlN=S.master.length;dl()}
  $('dlD').innerHTML=[...new Set(S.hutang.map(h=>h.pihak))].map(p=>`<option value="${esc(p)}">`).join('');
  const open=S.hutang.filter(h=>!h.lunas);
