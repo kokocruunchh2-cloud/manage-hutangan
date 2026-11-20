@@ -487,37 +487,32 @@ function parseInsuranceText(txt){
  const out=[];
  const units='tablets?|tabs?|kapsul|capsule|caps|cap|sachets?|sach|botol|botot|btl|ampul|amps?|vial|pens?|tubes?|pcs?|pieces?|strip|supp|ovula|drops?|box|unit|lembar|buah|puff|packs?|flakon';
  const unitRe=new RegExp('(?:^|[\\s(=])([0-9]+(?:[.,][0-9]+)?)\\s*('+units+')\\b','ig');
- const isHeading=s=>/^HUTANG(?:\\s|$)/i.test(s)||/^\\d{1,2}[\\/-]\\d{1,2}[\\/-]\\d{4}$/.test(s)||/^[-=* _\\s]*$/.test(s);
- txt.split(/\\r?\\n/).forEach(line=>{
+ const isHeading=s=>/^HUTANG(?:\s|$)/i.test(s)||/^\d{1,2}[\/-]\d{1,2}[\/-]\d{4}$/.test(s)||/^[-=* _\s]*$/.test(s);
+ String(txt||'').replace(/\r\n?/g,'\n').split('\n').forEach(line=>{
   let s=line.trim();
   if(!s||isHeading(s))return;
-  // Hilangkan nomor urut di awal baris.
-  s=s.replace(/^\\s*(?:\\d+\\s*[.)]\\s*|[-•]\\s*)/,'').trim();
+  s=s.replace(/^\s*(?:\d+\s*[.)]\s*|[-•]\s*)/,'').trim();
   if(!s)return;
-  let qty=0, cut=-1;
-  // Cari jumlah dengan satuan kemasan di seluruh baris, bukan hanya di ujung.
+  let qty=0,cut=-1;
   const matches=[...s.matchAll(new RegExp(unitRe.source,'ig'))];
   if(matches.length){
    const m=matches[matches.length-1];
-   const n=m[1].replace(',','.');
-   qty=Math.round(parseFloat(n));
+   qty=Math.round(parseFloat(m[1].replace(',','.')));
    cut=m.index+m[0].indexOf(m[1]);
   }else{
-   // Beberapa sumber menulis jumlah dalam kurung tanpa satuan, misalnya (60).
-   const m=[...s.matchAll(/\\(\\s*(\\d+)\\s*\\)/g)].pop();
+   const m=[...s.matchAll(/\(\s*(\d+)\s*\)/g)].pop();
    if(m){qty=parseInt(m[1],10);cut=m.index+m[0].indexOf(m[1]);}
   }
   let name=cut>=0?s.slice(0,cut).trim():s;
-  // Jika nama pasien berada sebelum titik dua, ambil sisi setelah titik dua.
-  // Jika titik dua berada setelah qty, bagian itu otomatis tidak ikut karena name dipotong lebih dulu.
   if(name.includes(':'))name=name.slice(name.lastIndexOf(':')+1).trim();
-  // Bersihkan tanda pemisah dan keterangan pasien yang ditulis setelah tanda sama dengan tanpa qty.
   name=name.replace(/^[-•;:]+/,'').replace(/[;,]+$/,'').trim();
   if(cut<0&&name.includes('='))name=name.split('=')[0].trim();
-  name=name.replace(/[=*#\\s]+$/g,'').trim();
+  name=name.replace(/[=*#\s]+$/g,'').trim();
   if(!name||!/[a-zA-Z]/.test(name))return;
-  name=name.replace(/^(?:obat\\s+)/i,'').trim();
-  out.push({raw:name,qty:qty>0?qty:0,c:cands(name).map(x=>x[1]),sel:-1,on:true,kat:'umum'});
+  name=name.replace(/^(?:obat\s+)/i,'').trim();
+  if(!name)return;
+  const candidates=cands(name).map(x=>x[1]);
+  out.push({raw:name,qty:qty>0?qty:0,c:candidates,sel:candidates.length?0:-1,on:true,kat:'umum'});
  });
  return out;
 }
