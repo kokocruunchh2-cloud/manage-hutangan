@@ -742,6 +742,20 @@ $('mDistImp').onclick=()=>{const v=$('mDistBulk').value.trim();if(!v){$('mDistMs
 $('mFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{importText(r.result);e.target.value=''};r.readAsText(f)};
 $('mQ').oninput=render;
 
+function editMasterItem(button){
+ const id=String(button && button.dataset ? button.dataset.k : '');
+ const m=S.master.find(x=>String(x.id)===id);
+ if(!m){$('mMsg').textContent='Barang tidak ditemukan di data yang sedang terbuka. Tidak ada data yang dihapus.';return false}
+ $('mI').value=String(m.id??'');
+ $('mN').value=String(m.nama??'');
+ $('mH').value=String(m.hpp??'');
+ $('mD').value=String(m.distributor||DIST_BY_ID[String(m.id)]||'');
+ $('mMsg').textContent='Data barang berhasil dimuat. Ubah kolom lalu klik Simpan barang.';
+ $('mI').focus();
+ return false;
+}
+window.editMasterItem=editMasterItem;
+
 document.addEventListener('click',e=>{
  const b=e.target.closest('[data-a]');if(!b)return;
  const [a,k]=[b.dataset.a,b.dataset.k];
@@ -779,7 +793,7 @@ function render(){
  $('hTot').innerHTML=`<b>Total keseluruhan hutang: ${rp(tg('bpjs')+tg('umum')+tg('reagen'))}</b><br><span class="mu">BPJS ${rp(tg('bpjs'))} · Umum/Asuransi ${rp(tg('umum'))} · Reagen ${rp(tg('reagen'))}${lun?' · Sudah lunas '+rp(lun):''}</span>`;
  $('kBody').innerHTML=S.kosong.map(k=>`<tr class="${k.ok?'done':''}"><td>${k.tgl}</td><td>${esc(k.nama)}</td><td class="n">${k.qty}</td><td class="n">${rp(k.qty*hp(k))}</td><td>${esc(k.cat)}</td><td><input type="checkbox" style="width:auto" data-c="k" data-k="${k.k}" ${k.ok?'checked':''}></td><td><button class="del" data-a="kd" data-k="${k.k}">✕</button></td></tr>`).join('')||'<tr><td colspan="7" class="mu">Belum ada obat kosong.</td></tr>';
  const q=$('mQ').value.toLowerCase();
- $('mBody').innerHTML=S.master.filter(m=>!q||m.nama.toLowerCase().includes(q)||m.id.toLowerCase().includes(q)).slice(0,100).map(m=>`<tr><td>${esc(m.id)}</td><td>${esc(m.nama)}${m.nama.endsWith('#')?' <span class="chip">BPJS</span>':m.nama.endsWith('*')?' <span class="chip">Asuransi</span>':''}</td><td class="n">${rp(m.hpp)}</td><td>${esc(m.distributor||DIST_BY_ID[String(m.id)]||"—")}</td><td><button data-a="me" data-k="${esc(m.id)}">Edit</button> <button class="del" data-a="md" data-k="${esc(m.id)}">✕</button></td></tr>`).join('')||'<tr><td colspan="4" class="mu">Master barang masih kosong. Tambahkan barang dulu.</td></tr>';
+ $('mBody').innerHTML=S.master.filter(m=>!q||m.nama.toLowerCase().includes(q)||m.id.toLowerCase().includes(q)).slice(0,100).map(m=>`<tr><td>${esc(m.id)}</td><td>${esc(m.nama)}${m.nama.endsWith('#')?' <span class="chip">BPJS</span>':m.nama.endsWith('*')?' <span class="chip">Asuransi</span>':''}</td><td class="n">${rp(m.hpp)}</td><td>${esc(m.distributor||DIST_BY_ID[String(m.id)]||"—")}</td><td><button type="button" data-a="me" data-k="${esc(m.id)}" onclick="return window.editMasterItem(this)">Edit</button> <button class="del" data-a="md" data-k="${esc(m.id)}">✕</button></td></tr>`).join('')||'<tr><td colspan="4" class="mu">Master barang masih kosong. Tambahkan barang dulu.</td></tr>';
 }
 render();
 </script>
