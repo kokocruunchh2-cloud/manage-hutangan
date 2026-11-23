@@ -37,10 +37,18 @@ tr.done td{opacity:.5;text-decoration:line-through}
 .grp{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .chip{background:var(--ok);border-radius:99px;padding:3px 10px;font-size:13px}
 .hide{display:none}.mu{color:var(--mu);font-size:13px}
-</style>
+\n#authGate{max-width:520px;margin:24px auto}#authGate button{margin-right:8px}\n</style>
 </head>
 <body>
 <div class="wrap">
+<section id="authGate" class="card" style="margin-bottom:14px">
+<h2>Login Manage Hutangan</h2>
+<p class="mu">Masuk menggunakan akun Google untuk membuka aplikasi.</p>
+<button id="googleLogin" class="pri" type="button">Masuk dengan Google</button>
+<button id="googleLogout" type="button" style="display:none">Keluar</button>
+<p id="authStatus" class="mu" aria-live="polite">Memeriksa sesi login...</p>
+</section>
+<div id="appContent" style="display:none">
 <h1>💊 Hutangan & Kekosongan Obat</h1>
 <div class="stats">
 <div class="stat"><small>Total hutang belum lunas</small><b id="sH">Rp0</b></div>
@@ -126,6 +134,7 @@ tr.done td{opacity:.5;text-decoration:line-through}
 <div class="tw"><table><thead><tr><th>ID</th><th>Nama produk</th><th class="n">HPP</th><th>Distributor default</th><th></th></tr></thead><tbody id="mBody"></tbody></table></div>
 </section>
 <p class="mu">Total hutang selalu dihitung dari HPP terbaru di Master Barang. Data tersimpan di browser perangkat ini.</p>
+</div>
 </div>
 <script>
 const $=id=>document.getElementById(id);
