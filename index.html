@@ -890,13 +890,13 @@ render();
      ready=false;activeUid=null;baseline=null;
      S={master:[],hutang:[],kosong:[]};
      if(typeof render==='function')render();
-     app.style.display='none';login.style.display='inline-block';logout.style.display='none';
+     app.style.display='none';gate.style.display='block';bar.style.display='none';login.style.display='inline-block';
      say('Belum login. Masuk menggunakan akun Google.');
      return;
    }
    if(activeUid===user.id&&ready)return;
    ready=false;activeUid=user.id;authUserEmail=user.email||'akun Google';
-   app.style.display='none';login.style.display='none';logout.style.display='inline-block';
+   app.style.display='none';gate.style.display='none';bar.style.display='flex';login.style.display='none';logout.style.display='inline-block';
    say('Login berhasil. Mengambil data akun dan master bersama...');
    try{
      const [mRows,dRows,hRows,kRows]=await Promise.all([
@@ -918,7 +918,7 @@ render();
        scheduleSave();
      }else say('Terhubung · data hutang dan kekosongan khusus akun ini.');
    }catch(e){
-     ready=false;app.style.display='none';
+     ready=false;app.style.display='none';gate.style.display='none';bar.style.display='flex';
      say('Data belum dapat dibuka: '+e.message+' · Periksa tabel dan kebijakan RLS Supabase.');
    }
  }
