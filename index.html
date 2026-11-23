@@ -38,6 +38,7 @@ tr.done td{opacity:.5;text-decoration:line-through}
 .chip{background:var(--ok);border-radius:99px;padding:3px 10px;font-size:13px}
 .hide{display:none}.mu{color:var(--mu);font-size:13px}
 \n#authGate{max-width:520px;margin:24px auto}#authGate button{margin-right:8px}\n</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div class="wrap">
@@ -780,6 +781,51 @@ function render(){
  $('mBody').innerHTML=S.master.filter(m=>!q||m.nama.toLowerCase().includes(q)||m.id.toLowerCase().includes(q)).slice(0,100).map(m=>`<tr><td>${esc(m.id)}</td><td>${esc(m.nama)}${m.nama.endsWith('#')?' <span class="chip">BPJS</span>':m.nama.endsWith('*')?' <span class="chip">Asuransi</span>':''}</td><td class="n">${rp(m.hpp)}</td><td>${esc(m.distributor||DIST_BY_ID[String(m.id)]||"—")}</td><td><button data-a="me" data-k="${esc(m.id)}">Edit</button> <button class="del" data-a="md" data-k="${esc(m.id)}">✕</button></td></tr>`).join('')||'<tr><td colspan="4" class="mu">Master barang masih kosong. Tambahkan barang dulu.</td></tr>';
 }
 render();
+</script>
+<script>
+/* SUPABASE_AUTH_PHASE1: autentikasi saja; aplikasi tetap terkunci sampai sinkronisasi diuji. */
+(function(){
+  const SUPABASE_URL = 'https://qfvcnfgqcrtexblfeyju.supabase.co';
+  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_veVjSxVgZipuhzPMsbNBmg_ecg9LqwH';
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  const status = document.getElementById('authStatus');
+  const login = document.getElementById('googleLogin');
+  const logout = document.getElementById('googleLogout');
+  const app = document.getElementById('appContent');
+  const say = (message) => { if(status) status.textContent = message; };
+  const showLocked = (user) => {
+    if(app) app.style.display = 'none';
+    if(login) login.style.display = user ? 'none' : 'inline-block';
+    if(logout) logout.style.display = user ? 'inline-block' : 'none';
+    if(user) say('Login Google berhasil sebagai ' + (user.email || 'akun Google') + '. Sinkronisasi database belum diaktifkan. Data aplikasi masih dikunci agar data akun tidak tercampur.');
+    else say('Belum login. Silakan masuk menggunakan akun Google.');
+  };
+  if(!window.supabase || !window.supabase.createClient) {
+    say('Pustaka login gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.');
+    return;
+  }
+  login.addEventListener('click', async function(){
+    login.disabled = true; say('Mengalihkan ke Google untuk login...');
+    const {error} = await client.auth.signInWithOAuth({
+      provider:'google',
+      options:{redirectTo:'https://kokocruunchh2-cloud.github.io/manage-hutangan/'}
+    });
+    if(error){say('Login gagal: '+error.message);login.disabled=false;}
+  });
+  logout.addEventListener('click', async function(){
+    logout.disabled=true;
+    const {error}=await client.auth.signOut();
+    if(error){say('Gagal keluar: '+error.message);logout.disabled=false;}
+    else {logout.disabled=false;showLocked(null);}
+  });
+  client.auth.onAuthStateChange((_event,session)=>{
+    showLocked(session && session.user ? session.user : null);
+  });
+  client.auth.getSession().then(({data,error})=>{
+    if(error) say('Gagal memeriksa sesi: '+error.message);
+    else showLocked(data.session && data.session.user ? data.session.user : null);
+  });
+})();
 </script>
 <script>
 /* Fallback navigasi tab: tetap aktif meskipun script utama mengalami error. */
