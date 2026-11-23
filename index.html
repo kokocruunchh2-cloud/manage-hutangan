@@ -135,7 +135,7 @@ tr.done td{opacity:.5;text-decoration:line-through}
 <input id="mQ" placeholder="Cari barang (tampil maks 100 hasil)..." style="margin-top:12px">
 <div class="tw"><table><thead><tr><th>ID</th><th>Nama produk</th><th class="n">HPP</th><th>Distributor default</th><th></th></tr></thead><tbody id="mBody"></tbody></table></div>
 </section>
-<p class="mu">Total hutang selalu dihitung dari HPP terbaru di Master Barang. Data tersimpan di browser perangkat ini.</p>
+<p class="mu">Total hutang dihitung dari HPP terbaru di Master Barang. Data tersinkron ke database sesuai akun setelah login.</p>
 </div>
 </div>
 <script>
@@ -905,14 +905,15 @@ render();
      if(version!==authVersion)return;
      const distMap=new Map();
      dRows.forEach(x=>{const id=String(x.id_barang);if(!distMap.has(id))distMap.set(id,[]);distMap.get(id).push(x.nama_distributor)});
-     let master=mRows.map(x=>({id:String(x.id),nama:x.nama||'',hpp:Number(x.hpp)||0,distributor:x.distributor||((distMap.get(String(x.id))||[]).join('; '))}));
-     if(!master.length&&typeof SEED!=='undefined')master=SEED.map(x=>({id:String(x[0]),nama:x[1],hpp:Number(x[2])||0,distributor:''}));
+     let master=mRows.map(x=>({id:String(x.id),nama:x.nama||'',hpp:Number(x.hpp)||0,distributor:x.distributor||((distMap.get(String(x.id))||[]).join('; '))||DIST_BY_ID[String(x.id)]||''}));
+     const seededMaster=!master.length;
+     if(seededMaster&&typeof SEED!=='undefined')master=SEED.map(x=>({id:String(x[0]),nama:x[1],hpp:Number(x[2])||0,distributor:DIST_BY_ID[String(x[0])]||''}));
      S={master,hutang:hRows.map(mapH),kosong:kRows.map(mapK)};
-     baseline={master:clone(S.master),hutang:clone(S.hutang),kosong:clone(S.kosong)};
+     baseline={master:seededMaster?[]:clone(S.master),hutang:clone(S.hutang),kosong:clone(S.kosong)};
      ready=true;
      if(typeof render==='function')render();
      app.style.display='block';
-     if(!mRows.length&&master.length){
+     if(seededMaster&&master.length){
        say('Login berhasil. Master awal dimuat; menyiapkan penyimpanan master bersama...');
        scheduleSave();
      }else say('Terhubung · data hutang dan kekosongan khusus akun ini.');
