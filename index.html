@@ -37,13 +37,12 @@ tr.done td{opacity:.5;text-decoration:line-through}
 .grp{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .chip{background:var(--ok);border-radius:99px;padding:3px 10px;font-size:13px}
 .hide{display:none}.mu{color:var(--mu);font-size:13px}
-#authGate{max-width:520px;margin:24px auto}#authGate button{margin-right:8px}#authBar{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin:0 0 14px;position:sticky;top:8px;z-index:50;pointer-events:none}#authBar #authStatus{margin:0;text-align:right;max-width:65%;background:var(--card);border:1px solid var(--bd);border-radius:999px;padding:7px 12px;box-shadow:0 3px 12px #0002}#authBar #googleLogout{pointer-events:auto;background:var(--wa);color:#fff;border:0;border-radius:999px;padding:10px 18px;font-weight:700;box-shadow:0 4px 14px #0003}#authBar #googleLogout:hover{filter:brightness(.92);transform:translateY(-1px)}
+#authGate{max-width:520px;margin:24px auto}#authGate button{margin-right:8px}.appHeader{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:4px 0 12px}.appHeader h1{margin:0;flex:1}#authBar{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin:0;position:static;z-index:50}#authBar #authStatus{display:none}#authBar #googleLogout{background:var(--wa);color:#fff;border:0;border-radius:999px;padding:10px 18px;font-weight:700;box-shadow:0 4px 14px #0003;white-space:nowrap}#authBar #googleLogout:hover{filter:brightness(.92);transform:translateY(-1px)}@media(max-width:560px){.appHeader{align-items:flex-start}.appHeader h1{font-size:18px}#authBar #googleLogout{padding:8px 12px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div class="wrap">
-<div id="authBar" style="display:none"><p id="authStatus" class="mu" aria-live="polite"></p><button id="googleLogout" type="button">Logout</button></div>
 <section id="authGate" class="card" style="margin-bottom:14px">
 <h2>Login Manage Hutangan</h2>
 <p class="mu">Masuk menggunakan akun Google untuk membuka aplikasi.</p>
@@ -51,7 +50,7 @@ tr.done td{opacity:.5;text-decoration:line-through}
 <p class="mu">Memeriksa sesi login...</p>
 </section>
 <div id="appContent" style="display:none">
-<h1>💊 Hutangan & Kekosongan Obat</h1>
+<div class="appHeader"><h1>💊 Hutangan & Kekosongan Obat</h1><div id="authBar" style="display:none"><p id="authStatus" class="mu" aria-live="polite"></p><button id="googleLogout" type="button">Logout</button></div></div>
 <div class="stats">
 <div class="stat"><small>Total hutang belum lunas</small><b id="sH">Rp0</b></div>
 <div class="stat"><small>Obat kosong (belum terpenuhi)</small><b id="sK">0</b></div>
