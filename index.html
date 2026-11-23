@@ -43,12 +43,12 @@ tr.done td{opacity:.5;text-decoration:line-through}
 </head>
 <body>
 <div class="wrap">
+<div id="authBar" style="display:none"><p id="authStatus" class="mu" aria-live="polite"></p><button id="googleLogout" type="button">Logout</button></div>
 <section id="authGate" class="card" style="margin-bottom:14px">
 <h2>Login Manage Hutangan</h2>
 <p class="mu">Masuk menggunakan akun Google untuk membuka aplikasi.</p>
 <button id="googleLogin" class="pri" type="button">Masuk dengan Google</button>
-<button id="googleLogout" type="button" style="display:none">Keluar</button>
-<p id="authStatus" class="mu" aria-live="polite">Memeriksa sesi login...</p>
+<p class="mu">Memeriksa sesi login...</p>
 </section>
 <div id="appContent" style="display:none">
 <h1>💊 Hutangan & Kekosongan Obat</h1>
@@ -791,7 +791,7 @@ render();
  const KEY='sb_publishable_veVjSxVgZipuhzPMsbNBmg_ecg9LqwH';
  const db=window.supabase.createClient(URL,KEY);
  const $id=id=>document.getElementById(id);
- const gate=$id('authGate'),app=$id('appContent'),status=$id('authStatus');
+ const gate=$id('authGate'),bar=$id('authBar'),app=$id('appContent'),status=$id('authStatus');
  const login=$id('googleLogin'),logout=$id('googleLogout');
  const say=t=>{if(status)status.textContent=t};
  let activeUid=null,ready=false,busy=false,queued=false,baseline=null,authVersion=0;
