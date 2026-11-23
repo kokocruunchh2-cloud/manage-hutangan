@@ -696,7 +696,7 @@ $('mAdd').onclick=()=>{
  const id=$('mI').value.trim(),nama=$('mN').value.trim(),hpp=+$('mH').value,distributor=$('mD').value.trim();
  if(!id||!nama||!(hpp>=0)||$('mH').value===''){$('mMsg').textContent='Lengkapi ID, nama, dan HPP.';return}
  const distFinal=distributor||DIST_BY_ID[id]||'';
- const i=S.master.findIndex(m=>m.id.toLowerCase()===id.toLowerCase());
+ const i=S.master.findIndex(m=>String(m.id).toLowerCase()===id.toLowerCase());
  if(i>=0)S.master[i]={...S.master[i],id,nama,hpp,distributor:distFinal};else S.master.push({id,nama,hpp,distributor:distFinal});
  ['mI','mN','mH','mD'].forEach(x=>$(x).value='');$('mMsg').textContent='Tersimpan.';dlN=-1;save();render();
 };
@@ -748,7 +748,7 @@ document.addEventListener('click',e=>{
  if(a==='hd')S.hutang=S.hutang.filter(x=>x.k!==k);
  if(a==='kd')S.kosong=S.kosong.filter(x=>x.k!==k);
  if(a==='md')S.master=S.master.filter(x=>x.id!==k);
- if(a==='me'){const m=S.master.find(x=>x.id===k);$('mI').value=m.id;$('mN').value=m.nama;$('mH').value=m.hpp;$('mD').value=m.distributor||DIST_BY_ID[String(m.id)]||'';return}
+ if(a==='me'){const m=S.master.find(x=>String(x.id)===String(k));if(!m){$('mMsg').textContent='Barang tidak ditemukan. Data tidak diubah.';return}$('mI').value=String(m.id??'');$('mN').value=m.nama??'';$('mH').value=m.hpp??'';$('mD').value=m.distributor||DIST_BY_ID[String(m.id)]||'';$('mMsg').textContent='Data barang dimuat. Silakan edit lalu klik Simpan barang.';$('mI').focus();return}
  save();render();
 });
 document.addEventListener('change',e=>{
